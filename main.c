@@ -13,10 +13,10 @@ init();
 print();
 uVar1 = add(0xaaaaaaaa,0x0);
 uVar1 = add(0xbbbbbbbb,0x0);
-uVar1 = size();
-printf("Size for python %u\n",(ulong)uVar1);
 print();
 print_asIPV4();
+uVar1 = size();
+printf("Size for python %u\n",(ulong)uVar1);
 
 }
 

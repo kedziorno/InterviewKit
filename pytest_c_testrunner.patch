@@ -1,0 +1,22 @@
+diff --git a/conftest.py b/conftest.py
+index b0df212..5c30bef 100644
+--- a/conftest.py
++++ b/conftest.py
+@@ -15,7 +15,7 @@ def pytest_collect_file(parent, path):
+ 
+     """
+     if path.ext == ".c" and path.basename.startswith("test_"):
+-        return CTestFile(path, parent)
++        return CTestFile.from_parent(parent, fspath=path)
+ 
+ 
+ class CTestFile(pytest.File):
+@@ -59,7 +59,7 @@ class CTestFile(pytest.File):
+                 test_results[-1][token] = data
+ 
+         for test_result in test_results:
+-            yield CTestItem(test_result["function_name"], self, test_result)
++            yield CTestItem.from_parent(parent=self.parent, name=test_result["function_name"], test_result=test_result)
+ 
+ 
+ class CTestItem(pytest.Item):
