@@ -20,3 +20,229 @@ index b0df212..5c30bef 100644
  
  
  class CTestItem(pytest.Item):
+diff --git a/test/Makefile b/test/Makefile
+index b2d4844..a2dda3b 100644
+--- a/test/Makefile
++++ b/test/Makefile
+@@ -29,3 +29,4 @@ clean :
+ # Executable targets.
+ %: %.c test_macros.h
+ 	$(Q)$(CC) -I$(INC_DIR) $(CFLAGS) $< -o $@ $(LIBS)
++
+diff --git a/test/test_basic_integers.c b/test/test_basic_integers.c
+index 3c0b0cf..fecf98a 100644
+--- a/test/test_basic_integers.c
++++ b/test/test_basic_integers.c
+@@ -12,12 +12,14 @@ void test_some_integers()
+ {
+     ASSERT_EQUAL_INT(1, 1);
+     ASSERT_EQUAL_INT(234, 234);
++    ASSERT_EQUAL_INT(1, '\x01');
++    ASSERT_EQUAL_INT('\xff', -1);
+ }
+ 
+ void test_more_integers()
+ {
+-    ASSERT_EQUAL_INT(313, 33);
+-    ASSERT_EQUAL_INT(12, 2);
++    ASSERT_NOT_EQUAL_INT(313, 33);
++    ASSERT_NOT_EQUAL_INT(12, 2);
+ }
+ 
+ int main()
+@@ -27,3 +29,4 @@ int main()
+ 
+     return 0;
+ }
++
+diff --git a/test/test_basic_strings.c b/test/test_basic_strings.c
+index 4c54c03..264a112 100644
+--- a/test/test_basic_strings.c
++++ b/test/test_basic_strings.c
+@@ -7,14 +7,15 @@
+ 
+ #include "test_macros.h"
+ 
+-
+ void test_some_strings()
+ {
+     char *foo = "This is foo";
+     char *bar = "This is bar";
+ 
+     ASSERT_EQUAL_STR(foo, foo);
+-    ASSERT_EQUAL_STR(foo, bar);
++    ASSERT_EQUAL_STR(bar, bar);
++    ASSERT_NOT_EQUAL_STR(foo, bar);
++    ASSERT_NOT_EQUAL_STR(bar, foo);
+ }
+ 
+ void test_more_strings()
+@@ -22,9 +23,10 @@ void test_more_strings()
+     char *foo = "This is foo";
+     char *bar = "This is bar";
+ 
+-    ASSERT_EQUAL_STR(bar, bar + 1);
+-    ASSERT_EQUAL_STR(foo, NULL);
++    ASSERT_NOT_EQUAL_STR(bar, bar + 1);
++    ASSERT_NOT_EQUAL_STR(foo, NULL);
+     ASSERT_EQUAL_STR(foo, foo);
++    ASSERT_EQUAL_STR(bar, bar);
+ }
+ 
+ int main()
+@@ -34,3 +36,4 @@ int main()
+ 
+     return 0;
+ }
++
+diff --git a/test/test_macros.h b/test/test_macros.h
+index 566b551..d053e8b 100644
+--- a/test/test_macros.h
++++ b/test/test_macros.h
+@@ -5,31 +5,115 @@
+  *
+  */
+ 
++#ifndef TEST_MACROS_H
++#define TEST_MACROS_H
++
+ #include <stdio.h>
+ #include <string.h>
+ 
+-#define ASSERT_EQUAL_INT(exp, got)                                           \
+-    do {                                                                     \
+-        if ((exp) == (got)) {                                                \
+-            printf("\n[PASS] %s:%s():%d\n", __FILE__, __func__, __LINE__);   \
+-        }                                                                    \
+-        else {                                                               \
+-            printf("\n[FAIL] %s:%s():%d\n", __FILE__, __func__, __LINE__);   \
+-            printf("  [TST] ASSERT_EQUAL_STR(" #exp ", " #got ")\n");        \
+-            printf("  [EXP] %d\n", (exp));                                   \
+-            printf("  [GOT] %d\n", (got));                                   \
+-        }                                                                    \
++// in #define line, all spaces must be removed
++
++//
++#define PRINT_COMPILATOR_INFO_WITH_STATUS(status)                             \
++  do {                                                                        \
++    printf("\n[" #status "] %s:%s():%d\n", __FILE__, __func__, __LINE__);     \
++  } while (0);
++
++//
++#define PRINT_PASS                                                            \
++  do {                                                                        \
++    PRINT_COMPILATOR_INFO_WITH_STATUS(PASS);                                  \
++  } while (0);
++
++//
++#define PRINT_FAIL                                                            \
++  do {                                                                        \
++    PRINT_COMPILATOR_INFO_WITH_STATUS(FAIL);                                  \
++  } while (0);
++
++//
++#define ASSERT_NOT_EQUAL_INT(exp, got)                                        \
++    do {                                                                      \
++        if ((exp) != (got)) {                                                 \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_NOT_EQUAL_INT(" #exp ", " #got ")\n");     \
++            printf("  [EXP] %d\n", (exp));                                    \
++            printf("  [GOT] %d\n", (got));                                    \
++        }                                                                     \
++    } while (0);
++
++//
++#define ASSERT_NOT_EQUAL_UINT(exp, got)                                       \
++    do {                                                                      \
++        if ((exp) != (got)) {                                                 \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_NOT_EQUAL_UINT(" #exp ", " #got ")\n");    \
++            printf("  [EXP] %u\n", (exp));                                    \
++            printf("  [GOT] %u\n", (got));                                    \
++        }                                                                     \
+     } while (0);
+ 
+-#define ASSERT_EQUAL_STR(exp, got)                                           \
+-    do {                                                                     \
+-        if ((exp) && (got) && strcmp((exp), (got)) == 0) {                   \
+-            printf("\n[PASS] %s:%s():%d\n", __FILE__, __func__, __LINE__);   \
+-        }                                                                    \
+-        else {                                                               \
+-            printf("\n[FAIL] %s:%s():%d\n", __FILE__, __func__, __LINE__);   \
+-            printf("  [TST] ASSERT_EQUAL_STR(" #exp ", " #got ")\n");        \
+-            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                \
+-            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                \
+-        }                                                                    \
++//
++#define ASSERT_EQUAL_INT(exp, got)                                            \
++    do {                                                                      \
++        if ((exp) == (got)) {                                                 \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_EQUAL_INT(" #exp ", " #got ")\n");         \
++            printf("  [EXP] %d\n", (exp));                                    \
++            printf("  [GOT] %d\n", (got));                                    \
++        }                                                                     \
+     } while (0);
++
++//
++#define ASSERT_EQUAL_UINT(exp, got)                                           \
++    do {                                                                      \
++        if ((exp) == (got)) {                                                 \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_EQUAL_UINT(" #exp ", " #got ")\n");        \
++            printf("  [EXP] %u\n", (exp));                                    \
++            printf("  [GOT] %u\n", (got));                                    \
++        }                                                                     \
++    } while (0);
++
++//
++#define ASSERT_NOT_EQUAL_STR(exp, got)                                        \
++    do {                                                                      \
++        if ((exp) || (got) || strcmp((exp), (got)) != 0) {                    \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_NOT_EQUAL_STR(" #exp ", " #got ")\n");     \
++            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                 \
++            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                 \
++        }                                                                     \
++    } while (0);
++
++//
++#define ASSERT_EQUAL_STR(exp, got)                                            \
++    do {                                                                      \
++        if ((exp) && (got) && strcmp((exp), (got)) == 0) {                    \
++            PRINT_PASS;                                                       \
++        }                                                                     \
++        else {                                                                \
++            PRINT_FAIL;                                                       \
++            printf("  [TST] ASSERT_EQUAL_STR(" #exp ", " #got ")\n");         \
++            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                 \
++            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                 \
++        }                                                                     \
++    } while (0);
++
++#endif /* TEST_MACROS_H */
++
+diff --git a/test/test_passing.c b/test/test_passing.c
+index d2307bf..c2a3ec7 100644
+--- a/test/test_passing.c
++++ b/test/test_passing.c
+@@ -22,3 +22,4 @@ int main()
+ 
+     return 0;
+ }
++

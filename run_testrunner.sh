@@ -1,12 +1,16 @@
 #!/bin/sh
 set -x
 
-rm -rf pytest_c_testrunner
+TESTRUNNER="pytest_c_testrunner"
+TESTRUNNER_PATH="${TESTRUNNER}.patch"
+
+rm -rf ${TESTRUNNER}
 git submodule update --init --recursive
-cd pytest_c_testrunner
+cd ${TESTRUNNER}
 rm -rf *
 git clean -fdx
 git reset --hard HEAD
-git apply ../pytest_c_testrunner.patch
+git apply ../${TESTRUNNER_PATH}
 make
 pytest
+
