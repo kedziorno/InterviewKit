@@ -21,94 +21,207 @@ index b0df212..5c30bef 100644
  
  class CTestItem(pytest.Item):
 diff --git a/test/Makefile b/test/Makefile
-index b2d4844..a2dda3b 100644
+index b2d4844..829d5ee 100644
 --- a/test/Makefile
 +++ b/test/Makefile
+@@ -15,7 +15,7 @@ endif
+ INC_DIR = .
+ 
+ # Flags passed to the C++ compiler.
+-CFLAGS += -g -Wall -Wextra -Wno-nonnull
++CFLAGS += -g -Wall -Wextra -Wno-nonnull -Wno-multichar -Wno-type-limits -Wformat=0
+ 
+ # Source files to compile.
+ SRCS = $(wildcard *.c)
 @@ -29,3 +29,4 @@ clean :
  # Executable targets.
  %: %.c test_macros.h
  	$(Q)$(CC) -I$(INC_DIR) $(CFLAGS) $< -o $@ $(LIBS)
 +
 diff --git a/test/test_basic_integers.c b/test/test_basic_integers.c
-index 3c0b0cf..fecf98a 100644
+index 3c0b0cf..c46850e 100644
 --- a/test/test_basic_integers.c
 +++ b/test/test_basic_integers.c
-@@ -12,12 +12,14 @@ void test_some_integers()
+@@ -5,19 +5,87 @@
+  *
+  */
+ 
+-#include "test_macros.h"
++#include "test_macros_int8.h"
++#include "test_macros_int16.h"
++#include "test_macros_int32.h"
+ 
++#include "test_macros_uint8.h"
++#include "test_macros_uint16.h"
++#include "test_macros_uint32.h"
+ 
+ void test_some_integers()
  {
-     ASSERT_EQUAL_INT(1, 1);
-     ASSERT_EQUAL_INT(234, 234);
-+    ASSERT_EQUAL_INT(1, '\x01');
-+    ASSERT_EQUAL_INT('\xff', -1);
+-    ASSERT_EQUAL_INT(1, 1);
+-    ASSERT_EQUAL_INT(234, 234);
++  ASSERT_EQUAL_INT8(1, 1);
++  ASSERT_EQUAL_INT8(234, 234);
++  ASSERT_EQUAL_INT8(1, '\x01');
++  ASSERT_EQUAL_INT8('\xea', -22);
++  ASSERT_EQUAL_INT8('\xff', -1);
++  ASSERT_EQUAL_INT8('\x00', 0);
++
++  ASSERT_EQUAL_UINT8(1, 1);
++  ASSERT_EQUAL_UINT8(234, 234);
++  ASSERT_EQUAL_UINT8(1, '\x01');
++  ASSERT_EQUAL_UINT8((uint8_t)'\xea', 234);
++  ASSERT_EQUAL_UINT8((uint8_t)'\xff', 255);
++  ASSERT_EQUAL_UINT8((uint8_t)'\x01', 1);
++  ASSERT_EQUAL_UINT8('\x00', 0);
++
++  ASSERT_EQUAL_INT16(1, 1);
++  ASSERT_EQUAL_INT16(234, 234);
++  ASSERT_EQUAL_INT16(1, '\x01');
++  ASSERT_EQUAL_INT16('\xff\xff', -1);
++  ASSERT_EQUAL_INT16('\x0000', 0);
++
++  ASSERT_EQUAL_UINT16(1, 1);
++  ASSERT_EQUAL_UINT16(234, 234);
++  ASSERT_EQUAL_UINT16(65535, (uint16_t)'\xff\xff');
++  ASSERT_EQUAL_UINT16((uint16_t)'\xff\xee', 65518);
++  ASSERT_EQUAL_UINT16('\x0000', 0);
++
++  ASSERT_EQUAL_INT32(1, 1);
++  ASSERT_EQUAL_INT32(234, 234);
++  ASSERT_EQUAL_INT32(1, '\x01');
++  ASSERT_EQUAL_INT32('\xff\xff\xff\xff', -1);
++  ASSERT_EQUAL_INT32('\x00000000', 0);
++
++  ASSERT_EQUAL_UINT32(1, 1);
++  ASSERT_EQUAL_UINT32(234, 234);
++  ASSERT_EQUAL_UINT32(1, '\x01');
++  ASSERT_EQUAL_UINT32((uint32_t)'\xff\xff\xff\xff', 4294967295);
++  ASSERT_EQUAL_UINT32('\x00000000', 0);
  }
  
  void test_more_integers()
  {
 -    ASSERT_EQUAL_INT(313, 33);
 -    ASSERT_EQUAL_INT(12, 2);
-+    ASSERT_NOT_EQUAL_INT(313, 33);
-+    ASSERT_NOT_EQUAL_INT(12, 2);
++  ASSERT_NOT_EQUAL_INT8(31, 33);
++  ASSERT_NOT_EQUAL_INT8(12, 2);
++  ASSERT_NOT_EQUAL_INT8(1, '\x22');
++  ASSERT_NOT_EQUAL_INT8('\xea', -1);
++
++  ASSERT_NOT_EQUAL_UINT8(31, 33);
++  ASSERT_NOT_EQUAL_UINT8(12, 2);
++  ASSERT_NOT_EQUAL_UINT8(1, '\x22');
++  ASSERT_NOT_EQUAL_UINT8((uint8_t)'\xea', 23);
++
++  ASSERT_NOT_EQUAL_INT16(313, 333);
++  ASSERT_NOT_EQUAL_INT16(1222, 2333);
++  ASSERT_NOT_EQUAL_INT16(112, '\x34');
++  ASSERT_NOT_EQUAL_INT16('\xfe', -1);
++
++  ASSERT_NOT_EQUAL_UINT16(313, 333);
++  ASSERT_NOT_EQUAL_UINT16(1222, 2333);
++  ASSERT_NOT_EQUAL_UINT16(112, '\x34');
++  ASSERT_NOT_EQUAL_UINT16((uint16_t)'\xfe', 1);
++
++  ASSERT_NOT_EQUAL_INT32(313, 33);
++  ASSERT_NOT_EQUAL_INT32(12, 2);
++  ASSERT_NOT_EQUAL_INT32(1, '\x10');
++  ASSERT_NOT_EQUAL_INT32('\xfe', -1);
++
++  ASSERT_NOT_EQUAL_UINT32(313, 33);
++  ASSERT_NOT_EQUAL_UINT32(12, 2);
++  ASSERT_NOT_EQUAL_UINT32(1, '\x10');
++  ASSERT_NOT_EQUAL_UINT32((uint32_t)'\xff\xff\xff\xfe', 1);
  }
  
  int main()
-@@ -27,3 +29,4 @@ int main()
+@@ -27,3 +95,4 @@ int main()
  
      return 0;
  }
 +
 diff --git a/test/test_basic_strings.c b/test/test_basic_strings.c
-index 4c54c03..264a112 100644
+index 4c54c03..5a90faf 100644
 --- a/test/test_basic_strings.c
 +++ b/test/test_basic_strings.c
-@@ -7,14 +7,15 @@
+@@ -1,36 +1,44 @@
+ /*****************************************************************************
+- * Simple unit tests for use with pytest_c_testrunner.
++ * Simple unit test macros for use with pytest_c_testrunner.
+  *
+  * Copyright 2014, John McNamara, jmcnamara@cpan.org
+  *
++ * Small refactoring : kndnooo@gmail.com
+  */
  
- #include "test_macros.h"
- 
+-#include "test_macros.h"
 -
++#include "test_macros_str.h"
+ 
  void test_some_strings()
  {
-     char *foo = "This is foo";
-     char *bar = "This is bar";
- 
-     ASSERT_EQUAL_STR(foo, foo);
+-    char *foo = "This is foo";
+-    char *bar = "This is bar";
+-
+-    ASSERT_EQUAL_STR(foo, foo);
 -    ASSERT_EQUAL_STR(foo, bar);
-+    ASSERT_EQUAL_STR(bar, bar);
-+    ASSERT_NOT_EQUAL_STR(foo, bar);
-+    ASSERT_NOT_EQUAL_STR(bar, foo);
++  char *foo = "This is foo";
++  char *bar = "This is bar";
++
++  ASSERT_EQUAL_STR(foo, foo);
++  ASSERT_EQUAL_STR(foo + 1, foo + 1);
++  ASSERT_EQUAL_STR(bar, bar);
++  ASSERT_EQUAL_STR(bar + 1, bar + 1);
++  ASSERT_EQUAL_STR(NULL, NULL);
  }
  
  void test_more_strings()
-@@ -22,9 +23,10 @@ void test_more_strings()
-     char *foo = "This is foo";
-     char *bar = "This is bar";
- 
+ {
+-    char *foo = "This is foo";
+-    char *bar = "This is bar";
+-
 -    ASSERT_EQUAL_STR(bar, bar + 1);
 -    ASSERT_EQUAL_STR(foo, NULL);
-+    ASSERT_NOT_EQUAL_STR(bar, bar + 1);
-+    ASSERT_NOT_EQUAL_STR(foo, NULL);
-     ASSERT_EQUAL_STR(foo, foo);
-+    ASSERT_EQUAL_STR(bar, bar);
+-    ASSERT_EQUAL_STR(foo, foo);
++  char *foo = "This is foo";
++  char *bar = "This is bar";
++
++  ASSERT_NOT_EQUAL_STR(foo, bar);
++  ASSERT_NOT_EQUAL_STR(bar, foo);
++  ASSERT_NOT_EQUAL_STR(foo + 1, foo);
++  ASSERT_NOT_EQUAL_STR(bar, bar + 1);
++  ASSERT_NOT_EQUAL_STR(foo, NULL);
++  ASSERT_NOT_EQUAL_STR(NULL, bar);
++  ASSERT_NOT_EQUAL_STR(foo + 8, bar + 8);
  }
  
  int main()
-@@ -34,3 +36,4 @@ int main()
+ {
+-    test_some_strings();
+-    test_more_strings();
++  test_some_strings();
++  test_more_strings();
  
-     return 0;
+-    return 0;
++  return 0;
  }
 +
 diff --git a/test/test_macros.h b/test/test_macros.h
-index 566b551..d053e8b 100644
+deleted file mode 100644
+index 566b551..0000000
 --- a/test/test_macros.h
-+++ b/test/test_macros.h
-@@ -5,31 +5,115 @@
-  *
-  */
- 
-+#ifndef TEST_MACROS_H
-+#define TEST_MACROS_H
-+
- #include <stdio.h>
- #include <string.h>
- 
++++ /dev/null
+@@ -1,35 +0,0 @@
+-/*****************************************************************************
+- * Simple unit test macros for use with pytest_c_testrunner.
+- *
+- * Copyright 2014, John McNamara, jmcnamara@cpan.org
+- *
+- */
+-
+-#include <stdio.h>
+-#include <string.h>
+-
 -#define ASSERT_EQUAL_INT(exp, got)                                           \
 -    do {                                                                     \
 -        if ((exp) == (got)) {                                                \
@@ -120,54 +233,8 @@ index 566b551..d053e8b 100644
 -            printf("  [EXP] %d\n", (exp));                                   \
 -            printf("  [GOT] %d\n", (got));                                   \
 -        }                                                                    \
-+// in #define line, all spaces must be removed
-+
-+//
-+#define PRINT_COMPILATOR_INFO_WITH_STATUS(status)                             \
-+  do {                                                                        \
-+    printf("\n[" #status "] %s:%s():%d\n", __FILE__, __func__, __LINE__);     \
-+  } while (0);
-+
-+//
-+#define PRINT_PASS                                                            \
-+  do {                                                                        \
-+    PRINT_COMPILATOR_INFO_WITH_STATUS(PASS);                                  \
-+  } while (0);
-+
-+//
-+#define PRINT_FAIL                                                            \
-+  do {                                                                        \
-+    PRINT_COMPILATOR_INFO_WITH_STATUS(FAIL);                                  \
-+  } while (0);
-+
-+//
-+#define ASSERT_NOT_EQUAL_INT(exp, got)                                        \
-+    do {                                                                      \
-+        if ((exp) != (got)) {                                                 \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_NOT_EQUAL_INT(" #exp ", " #got ")\n");     \
-+            printf("  [EXP] %d\n", (exp));                                    \
-+            printf("  [GOT] %d\n", (got));                                    \
-+        }                                                                     \
-+    } while (0);
-+
-+//
-+#define ASSERT_NOT_EQUAL_UINT(exp, got)                                       \
-+    do {                                                                      \
-+        if ((exp) != (got)) {                                                 \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_NOT_EQUAL_UINT(" #exp ", " #got ")\n");    \
-+            printf("  [EXP] %u\n", (exp));                                    \
-+            printf("  [GOT] %u\n", (got));                                    \
-+        }                                                                     \
-     } while (0);
- 
+-    } while (0);
+-
 -#define ASSERT_EQUAL_STR(exp, got)                                           \
 -    do {                                                                     \
 -        if ((exp) && (got) && strcmp((exp), (got)) == 0) {                   \
@@ -179,70 +246,527 @@ index 566b551..d053e8b 100644
 -            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                \
 -            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                \
 -        }                                                                    \
-+//
-+#define ASSERT_EQUAL_INT(exp, got)                                            \
-+    do {                                                                      \
-+        if ((exp) == (got)) {                                                 \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_EQUAL_INT(" #exp ", " #got ")\n");         \
-+            printf("  [EXP] %d\n", (exp));                                    \
-+            printf("  [GOT] %d\n", (got));                                    \
-+        }                                                                     \
-     } while (0);
+-    } while (0);
+diff --git a/test/test_macros_info.h b/test/test_macros_info.h
+new file mode 100644
+index 0000000..e209ff6
+--- /dev/null
++++ b/test/test_macros_info.h
+@@ -0,0 +1,42 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_INFO_H
++#define TEST_MACROS_INFO_H
++
++#include <stdint.h>
 +
 +//
-+#define ASSERT_EQUAL_UINT(exp, got)                                           \
++#define PRINT_COMPILATOR_INFO_WITH_STATUS(status)                             \
++  do {                                                                        \
++    uint32_t line = __LINE__;                                                 \
++    const char *file = __FILE__; \
++    const char *func = __FUNCTION__;\
++    printf("\n[" #status "] %s:%s():%d\n", file, func, line);         \
++  } while (0);
++
++//
++#define PRINT_INFO(status)                                                    \
++  do {                                                                        \
++    PRINT_COMPILATOR_INFO_WITH_STATUS(status);                                \
++  } while (0);
++
++//
++#define PRINT_PASS                                                            \
++  do {                                                                        \
++    PRINT_INFO(PASS);                                                         \
++  } while (0);
++
++//
++#define PRINT_FAIL                                                            \
++  do {                                                                        \
++    PRINT_INFO(FAIL);                                                         \
++  } while (0);
++
++#endif /* TEST_MACROS_INFO_H */
++
+diff --git a/test/test_macros_int16.h b/test/test_macros_int16.h
+new file mode 100644
+index 0000000..57a7460
+--- /dev/null
++++ b/test/test_macros_int16.h
+@@ -0,0 +1,47 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_INT16_H
++#define TEST_MACROS_INT16_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_INT16(exp, got)                                      \
 +    do {                                                                      \
-+        if ((exp) == (got)) {                                                 \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_EQUAL_UINT(" #exp ", " #got ")\n");        \
-+            printf("  [EXP] %u\n", (exp));                                    \
-+            printf("  [GOT] %u\n", (got));                                    \
-+        }                                                                     \
++      int16_t _exp = (int16_t)exp;                                            \
++      int16_t _got = (int16_t)got;                                            \
++      if ((_exp) != (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_NOT_EQUAL_INT16(" #exp ", " #got ")\n");       \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
 +    } while (0);
 +
-+//
-+#define ASSERT_NOT_EQUAL_STR(exp, got)                                        \
++#define ASSERT_EQUAL_INT16(exp, got)                                          \
 +    do {                                                                      \
-+        if ((exp) || (got) || strcmp((exp), (got)) != 0) {                    \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_NOT_EQUAL_STR(" #exp ", " #got ")\n");     \
-+            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                 \
-+            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                 \
-+        }                                                                     \
++      int16_t _exp = (int16_t)exp;                                            \
++      int16_t _got = (int16_t)got;                                            \
++      if ((_exp) == (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_EQUAL_INT16(" #exp ", " #got ")\n");           \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
 +    } while (0);
 +
-+//
-+#define ASSERT_EQUAL_STR(exp, got)                                            \
++#endif /* TEST_MACROS_INT16_H */
++
+diff --git a/test/test_macros_int32.h b/test/test_macros_int32.h
+new file mode 100644
+index 0000000..7c0315e
+--- /dev/null
++++ b/test/test_macros_int32.h
+@@ -0,0 +1,47 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_INT32_H
++#define TEST_MACROS_INT32_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_INT32(exp, got)                                      \
 +    do {                                                                      \
-+        if ((exp) && (got) && strcmp((exp), (got)) == 0) {                    \
-+            PRINT_PASS;                                                       \
-+        }                                                                     \
-+        else {                                                                \
-+            PRINT_FAIL;                                                       \
-+            printf("  [TST] ASSERT_EQUAL_STR(" #exp ", " #got ")\n");         \
-+            printf("  [EXP] %s\n", (exp) ? (exp) : "(null)");                 \
-+            printf("  [GOT] %s\n", (got) ? (got) : "(null)");                 \
-+        }                                                                     \
++      int32_t _exp = (int32_t)exp;                                            \
++      int32_t _got = (int32_t)got;                                            \
++      if ((_exp) != (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_NOT_EQUAL_INT32(" #exp ", " #got ")\n");       \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
 +    } while (0);
 +
-+#endif /* TEST_MACROS_H */
++#define ASSERT_EQUAL_INT32(exp, got)                                          \
++    do {                                                                      \
++      int32_t _exp = (int32_t)exp;                                            \
++      int32_t _got = (int32_t)got;                                            \
++      if ((_exp) == (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_EQUAL_INT32(" #exp ", " #got ")\n");           \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
++    } while (0);
++
++#endif /* TEST_MACROS_INT32_H */
++
+diff --git a/test/test_macros_int8.h b/test/test_macros_int8.h
+new file mode 100644
+index 0000000..7013dbb
+--- /dev/null
++++ b/test/test_macros_int8.h
+@@ -0,0 +1,47 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_INT8_H
++#define TEST_MACROS_INT8_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_INT8(exp, got)                                       \
++    do {                                                                      \
++      int8_t _exp = (int8_t)exp;                                              \
++      int8_t _got = (int8_t)got;                                              \
++      if ((_exp) != (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_NOT_EQUAL_INT8(" #exp ", " #got ")\n");        \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
++    } while (0);
++
++#define ASSERT_EQUAL_INT8(exp, got)                                           \
++    do {                                                                      \
++      int8_t _exp = (int8_t)exp;                                              \
++      int8_t _got = (int8_t)got;                                              \
++      if ((_exp) == (_got)) {                                                 \
++        PRINT_PASS;                                                           \
++      } else {                                                                \
++        PRINT_FAIL;                                                           \
++        printf("  [TST] ASSERT_EQUAL_INT8(" #exp ", " #got ")\n");            \
++        printf("  [EXP] %d\n", (exp));                                        \
++        printf("  [GOT] %d\n", (got));                                        \
++      }                                                                       \
++    } while (0);
++
++#endif /* TEST_MACROS_INT8_H */
++
+diff --git a/test/test_macros_str.h b/test/test_macros_str.h
+new file mode 100644
+index 0000000..e775093
+--- /dev/null
++++ b/test/test_macros_str.h
+@@ -0,0 +1,44 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_STR_H
++#define TEST_MACROS_STR_H
++
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_STR(exp, got) \
++  do { \
++    if (((exp == NULL) || (got == NULL)) || strcmp((exp), (got)) != 0) { \
++      PRINT_PASS; \
++    } else { \
++      PRINT_FAIL; \
++      printf("  [TST] ASSERT_NOT_EQUAL_STR(" #exp ", " #got ")\n"); \
++      printf("  [EXP] %s\n", (exp) ? (exp) : "(null)"); \
++      printf("  [GOT] %s\n", (got) ? (got) : "(null)"); \
++    } \
++  } while (0);
++
++#define ASSERT_EQUAL_STR(exp, got) \
++  do { \
++    if (exp == NULL && got == NULL) { \
++      PRINT_PASS; \
++    } else if ((exp) && (got) && strcmp((exp), (got)) == 0) { \
++      PRINT_PASS; \
++    } else { \
++      PRINT_FAIL; \
++      printf("  [TST] ASSERT_EQUAL_STR(" #exp ", " #got ")\n"); \
++      printf("  [EXP] %s\n", (exp) ? (exp) : "(null)"); \
++      printf("  [GOT] %s\n", (got) ? (got) : "(null)"); \
++    } \
++  } while (0);
++
++#endif /* TEST_MACROS_STR_H */
++
+diff --git a/test/test_macros_uint16.h b/test/test_macros_uint16.h
+new file mode 100644
+index 0000000..5169bab
+--- /dev/null
++++ b/test/test_macros_uint16.h
+@@ -0,0 +1,59 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_UINT16_H
++#define TEST_MACROS_UINT16_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_UINT16(exp, got) \
++    do { \
++      uint16_t _exp = (uint16_t)exp; \
++      uint16_t _got = (uint16_t)got; \
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT16 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %u\n", (exp)); \
++        printf("  [GOT] %u\n", (got)); \
++      } else \
++      if ((_exp) != (_got)) { \
++        PRINT_PASS; \
++      } else { \
++        PRINT_FAIL; \
++        printf("  [TST] ASSERT_NOT_EQUAL_UINT16(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %d\n", (_exp)); \
++        printf("  [GOT] %d\n", (_got)); \
++      } \
++    } while (0);
++
++#define ASSERT_EQUAL_UINT16(exp, got) \
++    do { \
++      uint16_t _exp = (uint16_t)exp; \
++      uint16_t _got = (uint16_t)got; \
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT16 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %d\n", (exp)); \
++        printf("  [GOT] %d\n", (got)); \
++      } else \
++      if ((_exp) == (_got)) { \
++        PRINT_PASS; \
++      } else { \
++        PRINT_FAIL; \
++        printf("  [TST] ASSERT_EQUAL_UINT16(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %u\n", (_exp)); \
++        printf("  [GOT] %u\n", (_got)); \
++      } \
++    } while (0);
++
++#endif /* TEST_MACROS_UINT16_H */
++
+diff --git a/test/test_macros_uint32.h b/test/test_macros_uint32.h
+new file mode 100644
+index 0000000..2a542f3
+--- /dev/null
++++ b/test/test_macros_uint32.h
+@@ -0,0 +1,59 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_UINT32_H
++#define TEST_MACROS_UINT32_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_UINT32(exp, got)\
++    do {\
++      uint32_t _exp = (uint32_t)exp;\
++      uint32_t _got = (uint32_t)got;\
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT32 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %u\n", (exp)); \
++        printf("  [GOT] %u\n", (got)); \
++      } else \
++      if ((_exp) != (_got)) {\
++        PRINT_PASS;\
++      } else {\
++        PRINT_FAIL;\
++        printf("  [TST] ASSERT_NOT_EQUAL_UINT32(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %d\n", (_exp)); \
++        printf("  [GOT] %d\n", (_got)); \
++      } \
++    } while (0);
++
++#define ASSERT_EQUAL_UINT32(exp, got) \
++    do { \
++      uint32_t _exp = (uint32_t)exp; \
++      uint32_t _got = (uint32_t)got; \
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT32 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %d\n", (exp)); \
++        printf("  [GOT] %d\n", (got)); \
++      } else \
++      if ((_exp) == (_got)) { \
++        PRINT_PASS; \
++      } else { \
++        PRINT_FAIL; \
++        printf("  [TST] ASSERT_EQUAL_UINT32(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %u\n", (_exp)); \
++        printf("  [GOT] %u\n", (_got)); \
++      } \
++    } while (0);
++
++#endif /* TEST_MACROS_UINT32_H */
++
+diff --git a/test/test_macros_uint8.h b/test/test_macros_uint8.h
+new file mode 100644
+index 0000000..96a873d
+--- /dev/null
++++ b/test/test_macros_uint8.h
+@@ -0,0 +1,59 @@
++/*****************************************************************************
++ * Simple unit test macros for use with pytest_c_testrunner.
++ *
++ * Copyright 2014, John McNamara, jmcnamara@cpan.org
++ *
++ * Small refactoring : kndnooo@gmail.com
++ */
++
++#ifndef TEST_MACROS_UINT8_H
++#define TEST_MACROS_UINT8_H
++
++#include <stdint.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "test_macros_info.h"
++
++#define ASSERT_NOT_EQUAL_UINT8(exp, got) \
++    do { \
++      uint8_t _exp = (uint8_t)exp; \
++      uint8_t _got = (uint8_t)got; \
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT8 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %u\n", (exp)); \
++        printf("  [GOT] %u\n", (got)); \
++      } else \
++      if ((_exp) != (_got)) { \
++        PRINT_PASS; \
++      } else { \
++        PRINT_FAIL; \
++        printf("  [TST] ASSERT_NOT_EQUAL_UINT8(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %d\n", (_exp)); \
++        printf("  [GOT] %d\n", (_got)); \
++      } \
++    } while (0);
++
++#define ASSERT_EQUAL_UINT8(exp, got) \
++    do { \
++      uint8_t _exp = (uint8_t)exp; \
++      uint8_t _got = (uint8_t)got; \
++      if ((exp) < 0 || (got) < 0) { \
++        PRINT_FAIL; \
++        printf("  [TST] NOT UINT8 (%d, %d)\n", exp, got); \
++        printf("  [EXP] %u\n", (exp)); \
++        printf("  [GOT] %u\n", (got)); \
++      } else \
++      if ((_exp) == (_got)) { \
++        PRINT_PASS; \
++      } else { \
++        PRINT_FAIL; \
++        printf("  [TST] ASSERT_EQUAL_UINT8(" #exp ", " #got ")\n"); \
++        printf("  [EXP] %d\n", (exp)); \
++        printf("  [GOT] %d\n", (got)); \
++      } \
++    } while (0);
++
++#endif /* TEST_MACROS_UINT8_H */
 +
 diff --git a/test/test_passing.c b/test/test_passing.c
-index d2307bf..c2a3ec7 100644
+index d2307bf..1b3d67f 100644
 --- a/test/test_passing.c
 +++ b/test/test_passing.c
-@@ -22,3 +22,4 @@ int main()
+@@ -5,20 +5,60 @@
+  *
+  */
  
-     return 0;
+-#include "test_macros.h"
++#include "test_macros_int8.h"
++#include "test_macros_int16.h"
++#include "test_macros_int32.h"
+ 
++#include "test_macros_uint8.h"
++#include "test_macros_uint16.h"
++#include "test_macros_uint32.h"
++
++#include "test_macros_str.h"
++
++#include <stdbool.h>
+ 
+ void test_passing()
+ {
+-    char *foo = "This is foo";
++  char *foo = "This is foo";
++
++  ASSERT_EQUAL_STR(foo, foo);
++  ASSERT_NOT_EQUAL_STR (foo+0,foo+1);
++
++  ASSERT_EQUAL_INT8(true, true);
++  ASSERT_NOT_EQUAL_INT8(true, false);
++  ASSERT_NOT_EQUAL_INT8(false, true);
++  ASSERT_EQUAL_INT8(false, false);
++
++  ASSERT_EQUAL_UINT8(true, true);
++  ASSERT_NOT_EQUAL_UINT8(true, false);
++  ASSERT_NOT_EQUAL_UINT8(false, true);
++  ASSERT_EQUAL_UINT8(false, false);
+ 
+-    ASSERT_EQUAL_STR(foo, foo);
+-    ASSERT_EQUAL_INT(1, 1);
++  ASSERT_EQUAL_INT16(true, true);
++  ASSERT_NOT_EQUAL_INT16(true, false);
++  ASSERT_NOT_EQUAL_INT16(false, true);
++  ASSERT_EQUAL_INT16(false, false);
++
++  ASSERT_EQUAL_UINT16(true, true);
++  ASSERT_NOT_EQUAL_UINT16(true, false);
++  ASSERT_NOT_EQUAL_UINT16(false, true);
++  ASSERT_EQUAL_UINT16(false, false);
++
++  ASSERT_EQUAL_INT32(true, true);
++  ASSERT_NOT_EQUAL_INT32(true, false);
++  ASSERT_NOT_EQUAL_INT32(false, true);
++  ASSERT_EQUAL_INT32(false, false);
++
++  ASSERT_EQUAL_UINT32(true, true);
++  ASSERT_NOT_EQUAL_UINT32(true, false);
++  ASSERT_NOT_EQUAL_UINT8(false, true);
++  ASSERT_EQUAL_UINT32(false, false);
+ }
+ 
+ int main()
+ {
+-    test_passing();
++  test_passing();
+ 
+-    return 0;
++  return 0;
  }
 +
