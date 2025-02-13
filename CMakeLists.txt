@@ -19,7 +19,7 @@ set_target_properties(IPv4 PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}"
 )
 
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR})
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR} pytest_c_testrunner/test/)
 add_executable(${PROJECT_NAME} ${PROJECT_FILES})
 target_link_libraries(${PROJECT_NAME} IPv4)
 

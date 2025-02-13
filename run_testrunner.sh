@@ -10,7 +10,7 @@ cd ${TESTRUNNER}
 rm -rf *
 git clean -fdx
 git reset --hard HEAD
-git apply ../${TESTRUNNER_PATH}
+git apply --reject ../${TESTRUNNER_PATH}
 make
-pytest
+pytest $@
 
