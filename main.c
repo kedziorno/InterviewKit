@@ -85,83 +85,83 @@ int main (int argc, char *argv[], char *env[]) {
   uint32_t uVar2;
 
   uVar2 = init ();
-  ASSERT_EQUAL_INT32 (*p1, uVar2); // address for new test is the same as address get from dlsym (newSet)
+  ASSERT_EQUAL_INT32 ("Pointer to newSet is equal", *p1, uVar2); // address for new test is the same as address get from dlsym (newSet)
 
   print ();
   print_asIPV4 ();
 
   uVar2 = size();
-  ASSERT_EQUAL_INT32 (0, uVar2); // we have empty database
+  ASSERT_EQUAL_INT32 ("Empty database", 0, uVar2); // we have empty database
 
   print ();
   print_asIPV4 ();
 
   uVar2 = add(0xc0a80100,0x18); // .0/24
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_EQUAL_INT32 (0x18, check (0xc0a80100));
+  ASSERT_EQUAL_INT32 ("Add good address", 0, uVar2); // Add good address
+  ASSERT_EQUAL_INT32 ("Check mask 0x18", 0x18, check (0xc0a80100));
 
   uVar2 = add(0xc0a801fe,0x18); // .254/24
-  ASSERT_EQUAL_INT32 (-1, uVar2); // Add bad address
-  ASSERT_NOT_EQUAL_INT32 (0x00, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Add bad address", -1, uVar2); // Add bad address
+  ASSERT_NOT_EQUAL_INT32 ("Check mask 0x00", 0x00, check (0xc0a801fe));
 
   uVar2 = add(0xc0a801fe,0x20); // .254/32
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_EQUAL_INT32 (0x20, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Add good address", 0, uVar2); // Add good address
+  ASSERT_EQUAL_INT32 ("Check mask 0x20", 0x20, check (0xc0a801fe));
 
   uVar2 = add(0xc0a801fe,0x00); // .254/0
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_NOT_EQUAL_INT32 (0x00, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Add good address", 0, uVar2); // Add good address
+  ASSERT_NOT_EQUAL_INT32 ("Check mask 0x00", 0x00, check (0xc0a801fe));
 
   uVar2 = add(0xc0a80100,0x20); // .0/32
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_EQUAL_INT32 (0x20, check (0xc0a80100));
+  ASSERT_EQUAL_INT32 ("Add good address", 0, uVar2); // Add good address
+  ASSERT_EQUAL_INT32 ("Check mask 0x20", 0x20, check (0xc0a80100));
 
   uVar2 = size();
-  ASSERT_EQUAL_INT32 (4, uVar2); // count from 0 - after add's
+  ASSERT_EQUAL_INT32 ("We have 5 items", 4, uVar2); // count from 0 - after add's
 
   print ();
   print_asIPV4 ();
 
   uVar2 = del(0xc0a80100,0x18); // .0/24
-  ASSERT_EQUAL_INT32 (0, uVar2); // Delete address
-  ASSERT_EQUAL_INT32 (0x20, check (0xc0a80100)); // line 104
+  ASSERT_EQUAL_INT32 ("Delete address", 0, uVar2); // Delete address
+  ASSERT_EQUAL_INT32 ("Check mask 0x20 on deleted address", 0x20, check (0xc0a80100)); // line 104
 
   uVar2 = del(0xc0a80100,0x20); // .0/32
-  ASSERT_EQUAL_INT32 (0, uVar2); // Delete address
-  ASSERT_EQUAL_INT32 (-1, check (0xc0a80100)); // Not exists in database
+  ASSERT_EQUAL_INT32 ("Delete address", 0, uVar2); // Delete address
+  ASSERT_EQUAL_INT32 ("Check if address exists in database", -1, check (0xc0a80100)); // Not exists in database
 
   uVar2 = size();
-  ASSERT_EQUAL_INT32 (2, uVar2); // count from 0 - after one delete
+  ASSERT_EQUAL_INT32 ("After two deletes we have 3 items", 2, uVar2); // count from 0 - after one delete
 
   print ();
   print_asIPV4 ();
 
   uVar2 = del(0xc0a801fe,0x00); // .254/0
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_NOT_EQUAL_INT32 (0x00, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Delete address", 0, uVar2); // Delete address
+  ASSERT_NOT_EQUAL_INT32 ("Check after delete address", 0x00, check (0xc0a801fe));
 
   uVar2 = del(0xc0a801fe,0x00); // .254/0
-  ASSERT_EQUAL_INT32 (0, uVar2); // Add good address
-  ASSERT_NOT_EQUAL_INT32 (0x00, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Delete address", 0, uVar2); // Delete address
+  ASSERT_NOT_EQUAL_INT32 ("Check after delete address", 0x00, check (0xc0a801fe));
 
   uVar2 = size();
-  ASSERT_EQUAL_INT32 (1, uVar2); // count from 0 - after one delete
+  ASSERT_EQUAL_INT32 ("After two deletes we have 2 items", 1, uVar2); // count from 0 - after one delete
 
   print ();
   print_asIPV4 ();
 
   uVar2 = del(0xc0a801fe,0x1f); // .254/32 -> .254/31
-  ASSERT_EQUAL_INT32 (0, uVar2); // unset
-  ASSERT_NOT_EQUAL_INT32 (0x1f, check (0xc0a801fe)); // fail : must have / 31
+  ASSERT_EQUAL_INT32 ("Delete address", 0, uVar2); // unset
+  ASSERT_NOT_EQUAL_INT32 ("This test fail when replace .254/32 -> .254/31", 0x1f, check (0xc0a801fe)); // fail : must have / 31
 
   uVar2 = size();
-  ASSERT_EQUAL_INT32 (1, uVar2); // count from 0 - after one delete
-  ASSERT_NOT_EQUAL_INT32 (0x00, check (0xc0a801fe));
+  ASSERT_EQUAL_INT32 ("Check size after one delete", 1, uVar2); // count from 0 - after one delete
+  ASSERT_NOT_EQUAL_INT32 ("Some mask for address 0xc0a801fe exists", 0x00, check (0xc0a801fe));
 
   clear ();
 
   uVar2 = size();
-  ASSERT_NOT_EQUAL_INT32 (0, uVar2); // not empty and print's IP's make SEGFAULT
+  ASSERT_NOT_EQUAL_INT32 ("We don't have empty database - one element", 0, uVar2); // not empty and print's IP's make SEGFAULT
 
   //print ();
   //print_asIPV4 ();
