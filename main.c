@@ -19,6 +19,12 @@ uint64_t* find_newSet();
 
 void case1();
 void case2();
+void case3();
+
+typedef struct {
+  uint32_t address;
+  uint8_t mask;
+} bunch_ipv4_addresses_t;
 
 int main (int argc, char *argv[], char *env[]) {
   (void)argc;
@@ -29,6 +35,7 @@ int main (int argc, char *argv[], char *env[]) {
   // MAIN TESTS
   case1 ();
   case2 ();
+  case3 ();
 
   clear ();
   init ();
@@ -119,8 +126,9 @@ int main (int argc, char *argv[], char *env[]) {
 
 void case1() { // TODO test for int64/uint64
   uint64_t* newSet_address = find_newSet();
-  int init_address = init();
-  ASSERT_EQUAL_INT32 ("Pointer to newSet is equal", *newSet_address, init_address); // address for new test is the same as address get from dlsym (newSet)
+  uint64_t init_address = init();
+  ASSERT_EQUAL_INT32 ("Pointer to newSet is equal - variables", *newSet_address, init_address); // address for new test is the same as address get from dlsym (newSet)
+  //ASSERT_EQUAL_UINT32 ("Pointer to newSet is equal - functions", (uint32_t)init(), (uint32_t)find_newSet()); // address for new test is the same as address get from dlsym (newSet) // TODO Make int64/uint64 test
 }
 
 void case2() {
@@ -128,11 +136,6 @@ void case2() {
   uint32_t uVar1;
   uint32_t *q, *s;
   #define IPV4_ADDRESSES 9
-  typedef struct {
-    uint32_t address;
-    uint8_t mask;
-  } bunch_ipv4_addresses_t;
-
   bunch_ipv4_addresses_t bunch_ipv4_addresses[IPV4_ADDRESSES] = {
     { 0xaaaaaaaa, 0x00 },
     { 0x11111111, 0x00 },
@@ -174,6 +177,39 @@ void case2() {
     ASSERT_NOT_EQUAL_STR ("Test bunch addresses - for NOT equal address in bunch and stored in newSet, index =" #i, &buffer1+1, &buffer2+2);
     ASSERT_EQUAL_UINT32 ("Test bunch addresses - compare address(32) at i", *q, bunch_ipv4_addresses[i].address);
     ASSERT_EQUAL_UINT8 ("Test bunch addresses - compare mask(8) at i", *s, bunch_ipv4_addresses[i].mask);
+  }
+}
+
+void case3() { // Behaviour init() and clear()
+  bunch_ipv4_addresses_t ipv4[4] = {
+    { 0x7f000001, 0x00 },
+    { 0x7f000001, 0x20 },
+    { 0xc0a80001, 0x00 },
+    { 0xc0a80001, 0x20 },
+  };
+
+  for (uint8_t index = 0; index < sizeof (ipv4); index++) {
+    // empty
+    init ();
+    ASSERT_EQUAL_INT32 ("Call init(), we have empty database", 0, size());
+    clear ();
+    ASSERT_EQUAL_INT32 ("Call clear(), we have empty database also", 0, size());
+    init ();
+    ASSERT_EQUAL_INT32 ("Call init again(), we have empty database also", 0, size());
+    // one address, init again
+    ASSERT_EQUAL_INT32 ("Add test address " #ipv4[index].address "/" #ipv4[index].mask, 0, add (ipv4[index].address, ipv4[index].mask));
+    print ();
+    print_asIPV4 ();
+    ASSERT_EQUAL_INT32 ("Add test address " #ipv4[index].address "/" #ipv4[index].mask ", we have 1 item", 1, size());
+    init ();
+    ASSERT_EQUAL_INT32 ("Call init() on filler database, we expect 0 items - reset", 0, size());
+    // one address, next() clear
+    ASSERT_EQUAL_INT32 ("Add test address " #ipv4[index].address "/" #ipv4[index].mask, 0, add (ipv4[index].address, ipv4[index].mask));
+    print ();
+    print_asIPV4 ();
+    ASSERT_EQUAL_INT32 ("Add test address " #ipv4[index].address "/" #ipv4[index].mask ", we have 1 item", 1, size());
+    clear ();
+    ASSERT_EQUAL_INT32 ("Call clear() on filler database, we expect 0 items - reset", 0, size());
   }
 }
 

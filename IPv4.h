@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-int init(void); // Tools show than init() return some value (it's address of DB)
+uint64_t init(void); // Tools show than init() return some value (it's address of DB)
 
 int add(unsigned int base, char mask);
 
