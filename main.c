@@ -15,77 +15,25 @@
 
 #include "IPv4.h"
 
-int main (int argc, char *argv[], char *env[]) {
+uint64_t* find_newSet();
 
+void case1();
+void case2();
+
+int main (int argc, char *argv[], char *env[]) {
   (void)argc;
   (void)argv;
   (void)env;
-
-  void *handle;
-  handle = dlopen ("../IPv4.so", RTLD_NOW | RTLD_GLOBAL);
-  if (!handle) {
-    fprintf(stderr, "%s\n", dlerror());
-    exit(EXIT_FAILURE);
-  }
-  dlerror();
-
-  init();
-
-  runTests((void *)0); // function cleaning structure at end
-
-  clear();
-
-  init();
-
-  print();
-
-  uint32_t uVar1;
-
-  uVar1 = add(0xaaaaaaaa,0x0);
-  uVar1 = add(0x11111111,0x0);
-  uVar1 = add(0x22222222,0x0);
-  uVar1 = add(0x33333333,0x0);
-  uVar1 = add(0x44444444,0x0);
-  uVar1 = add(0x55555555,0x0);
-  uVar1 = add(0x66666666,0x0);
-  uVar1 = add(0x77777777,0x0);
-  uVar1 = add(0x88888888,0x0);
-
-  print();
-
-  print_asIPV4();
-
-  uVar1 = size();
-  printf("Size %u\n", uVar1);
-
-  uint64_t *p1 = NULL;
-  p1 = (uint64_t *)dlsym(handle, "newSet"); // variable from IPv4.so
-  printf ("newSet heap address = 0x%08lx\n", *p1);
-
-  char *error = dlerror();
-  if (error != NULL) {
-    fprintf(stderr, "aaaa %s\n", error);
-    exit(EXIT_FAILURE);
-  }
-
-  for (uint32_t i = 0;  i < uVar1; i++) {
-    uint32_t *q = (uint32_t*)*p1+(i*2)+0;
-    uint32_t *s = (uint32_t*)*p1+(i*2)+1;
-    printf ("%d(%x) : %08x,%08x\n", i, i, *q, *s);
-  }
-
-  printf ("\n");
-
-  dlclose(handle);
+  runTests((void *)0); // from IPv4.so, function cleaning structure at end
 
   // MAIN TESTS
+  case1 ();
+  case2 ();
 
   clear ();
+  init ();
 
   uint32_t uVar2;
-
-  uVar2 = init ();
-  ASSERT_EQUAL_INT32 ("Pointer to newSet is equal", *p1, uVar2); // address for new test is the same as address get from dlsym (newSet)
 
   print ();
   print_asIPV4 ();
@@ -163,10 +111,90 @@ int main (int argc, char *argv[], char *env[]) {
   uVar2 = size();
   ASSERT_NOT_EQUAL_INT32 ("We don't have empty database - one element", 0, uVar2); // not empty and print's IP's make SEGFAULT
 
-  //print ();
-  //print_asIPV4 ();
+  //print (); // SIGV
+  //print_asIPV4 (); // SIGV
 
   exit (EXIT_SUCCESS);
+}
 
+void case1() { // TODO test for int64/uint64
+  uint64_t* newSet_address = find_newSet();
+  int init_address = init();
+  ASSERT_EQUAL_INT32 ("Pointer to newSet is equal", *newSet_address, init_address); // address for new test is the same as address get from dlsym (newSet)
+}
+
+void case2() {
+  uint64_t* p1 = find_newSet();
+  uint32_t uVar1;
+  uint32_t *q, *s;
+  #define IPV4_ADDRESSES 9
+  typedef struct {
+    uint32_t address;
+    uint8_t mask;
+  } bunch_ipv4_addresses_t;
+
+  bunch_ipv4_addresses_t bunch_ipv4_addresses[IPV4_ADDRESSES] = {
+    { 0xaaaaaaaa, 0x00 },
+    { 0x11111111, 0x00 },
+    { 0x22222222, 0x00 },
+    { 0x33333333, 0x00 },
+    { 0x44444444, 0x00 },
+    { 0x55555555, 0x00 },
+    { 0x66666666, 0x00 },
+    { 0x77777777, 0x00 },
+    { 0x88888888, 0x00 },
+  };
+
+  clear();
+  init();
+
+  print();
+  print_asIPV4();
+
+  for (uint8_t index = 0; index < IPV4_ADDRESSES; index++) {
+    //const char *info = sprintf ("Add address %08x with mask 0x02x\n", bunch_ipv4_addresses[index].address, bunch_ipv4_addresses[index].mask); 
+    ASSERT_EQUAL_INT32 ("Add address from bunch_ipv4_addresses", add (bunch_ipv4_addresses[index].address, bunch_ipv4_addresses[index].mask), 0);
+    ASSERT_NOT_EQUAL_INT32 ("Add address from bunch_ipv4_addresses - negate logic", add (bunch_ipv4_addresses[index].address, bunch_ipv4_addresses[index].mask), ~0);
+  }
+
+  print();
+  print_asIPV4();
+
+  ASSERT_EQUAL_INT32 ("After add's, we have bunch addresses equal to" #IPV4_ADDRESSES, IPV4_ADDRESSES, size ());
+
+  for (uint8_t i = 0;  i < IPV4_ADDRESSES; i++) { // TODO Fix index i
+    const char buffer1 [512] = { 0 };
+    const char buffer2 [512] = { 0 };
+    q = (uint32_t*)*p1+(i*2)+0;
+    s = (uint32_t*)*p1+(i*2)+1;
+    printf ("%d(%x) : %08x,%08x\n", i, i, *q, *s);
+    const char *test_src = sprintf (&buffer1, "%08x,%08x\n\0", *q, *s);
+    const char *test_dst = sprintf (&buffer2, "%08x,%08x\n\0", bunch_ipv4_addresses[i].address, bunch_ipv4_addresses[i].mask);
+    ASSERT_EQUAL_STR ("Test bunch addresses - for equal address in bunch and stored in newSet, index =" #i, &buffer1, &buffer2);
+    ASSERT_NOT_EQUAL_STR ("Test bunch addresses - for NOT equal address in bunch and stored in newSet, index =" #i, &buffer1+1, &buffer2+2);
+    ASSERT_EQUAL_UINT32 ("Test bunch addresses - compare address(32) at i", *q, bunch_ipv4_addresses[i].address);
+    ASSERT_EQUAL_UINT8 ("Test bunch addresses - compare mask(8) at i", *s, bunch_ipv4_addresses[i].mask);
+  }
+}
+
+uint64_t* find_newSet() {
+  void *handle = NULL;
+  uint64_t *p1 = NULL;
+  char *error = NULL;
+  handle = dlopen ("../IPv4.so", RTLD_NOW | RTLD_GLOBAL);
+  if (!handle) {
+    fprintf(stderr, "dlopen : %s\n", dlerror());
+    return p1;
+  }
+  dlerror();
+  p1 = (uint64_t *)dlsym(handle, "newSet"); // variable from IPv4.so
+  error = dlerror();
+  if (error != NULL) {
+    fprintf(stderr, "dlsym %s\n", error);
+    return p1;
+  }
+  dlclose(handle);
+  printf ("newSet address = 0x%08lx\n", p1);
+  return p1;
 }
 

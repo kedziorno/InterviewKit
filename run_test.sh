@@ -8,6 +8,7 @@ TESTRUNNER="pytest_c_testrunner"
 rm -rf build
 mkdir build
 cd build
+cp ../IPv4.so .
 cmake ..
 make
 cp ../${TESTRUNNER}/conftest.py conftest.py.new
